@@ -41,7 +41,7 @@ class MonteCarloTree():
         return self.dir
 
     def untried_actions(self):
-        self._untried_actions = self.get_actions()
+        self._untried_actions = self.get_actions(self.cur_state)
         return self._untried_actions
 
     def win_rate(self):
@@ -140,24 +140,27 @@ class MonteCarloTree():
         chess_board[r + move[0], c + move[1], self.opposites[dir]] = True
         return chess_board
 
-    def get_actions(self):
+    def get_actions(self,cur_state):
+        logging.info(
+            "-----------------start getting all the possible moves--------------------------------------"
+        )
         actions = []
 
         for i in range(50):
-            ori_pos = copy.deepcopy(self.cur_state[0])
+            ori_pos = copy.deepcopy(cur_state[0])
             moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
             steps = np.random.randint(0, self.max_step)
 
             # Random Walk
             for _ in range(steps):
-                r, c = self.cur_state[0]
+                r, c = cur_state[0]
                 dir = np.random.randint(0, 4)
                 m_r, m_c = moves[dir]
                 ori_pos = (r + m_r, c + m_c)
 
                 # Special Case enclosed by Adversary
                 k = 0
-                while self.cur_state[2][r, c, dir] or ori_pos == self.cur_state[1]:
+                while cur_state[2][r, c, dir] or ori_pos == cur_state[1]:
                     k += 1
                     if k > 300:
                         break
@@ -166,23 +169,29 @@ class MonteCarloTree():
                     ori_pos = (r + m_r, c + m_c)
 
                 if k > 300:
-                    ori_pos = self.cur_state[0]
+                    ori_pos = cur_state[0]
                     break
 
             # Put Barrier
             dir = np.random.randint(0, 4)
             r, c = ori_pos
-            while self.cur_state[2][r, c, dir]:
+            while cur_state[2][r, c, dir]:
                 dir = np.random.randint(0, 4)
             action = (ori_pos, dir)
             actions.append(action)
         return actions
 
     def simulate(self):
+        logging.info(
+            "-----------------start simulating the result--------------------------------------"
+        )
         cur_state = self.cur_state
 
         while not self.game_over(cur_state)[0]:
-            moves = self.get_actions()
+            logging.info(
+                "-----------------simulating--------------------------------------"
+            )
+            moves = self.get_actions(cur_state)
             step = random.randint(0, len(moves))
             move = moves[step]
             cur_state = self.move(move, cur_state[2])
@@ -190,7 +199,9 @@ class MonteCarloTree():
                 break
 
             cur_state = self.opp_move(cur_state)
-
+        logging.info(
+            "-----------------finished simulating the result--------------------------------------"
+        )
         return self.game_over(cur_state)
 
     def opp_move(self, cur_state):
