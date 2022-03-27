@@ -30,11 +30,12 @@ class StudentAgent(Agent):
         class MonteCarloTree():
             def __init__(self, cur_state, board_size, parent=None, parent_action=None):
                 self.cur_state = cur_state
+                self._number_of_visits = 0
                 self.parent = parent
                 self.parent_action = parent_action
                 self.board_size = board_size
                 self.children = []
-                self._number_of_visits = 0
+                self._number_of_blocks = 0
                 self._results = defaultdict(int)
                 self._results[1] = 0
                 self._results[-1] = 0
@@ -60,6 +61,7 @@ class StudentAgent(Agent):
                 action = self._untried_actions.pop()
                 next_state = self.move(action)
                 child_node = MonteCarloTree(next_state, self.board_size, parent=self, parent_action=action)
+                self.children.append(child_node)
                 return child_node
 
             def is_terminal_node(self):
@@ -113,16 +115,16 @@ class StudentAgent(Agent):
 
                 return True, p0_score, p1_score
 
-            def move(self, action):
+            def move(self, action,oldboard):
                 #create a new board
                 next_pos, dir = action
                 r, c = next_pos
-                new_board = self.set_barrier(r, c, dir)
-                return next_pos,self.cur_state[1], new_board
+                new_board = self.set_barrier(r, c, dir,oldboard)
+                return next_pos, self.cur_state[1], new_board
 
-            def set_barrier(self,r,c,dir):
+            def set_barrier(self,r,c,dir,old_board):
                 # Set the barrier to True
-                chess_board = copy.deepcopy(self.cur_state[2])
+                chess_board = copy.deepcopy(old_board)
                 chess_board[r, c, dir] = True
                 # Set the opposite barrier to True
                 move = self.moves[dir]
@@ -170,18 +172,76 @@ class StudentAgent(Agent):
             def simulate(self):
                 cur_state = self.cur_state
 
-                while not self.game_over(cur_state):
+                while not self.game_over(cur_state)[0]:
                     moves = self.get_actions()
                     step = random.randint(0, len(moves))
                     move = moves[step]
-                    cur_state = self.move(move)
-                return self.get_result()
+                    cur_state = self.move(move,cur_state[2])
+                    if self.game_over(cur_state)[0]:
+                        break
 
-            def backTracking(self,result):
-                self._number_of_visits += 1.
-                self._results[result] += 1.
+                    cur_state = self.opp_move(cur_state)
+
+                return self.game_over(cur_state)
+
+            def opp_move(self, cur_state):
+                opp_pos = copy.deepcopy(cur_state[2])
+                moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
+                steps = np.random.randint(0, (self.board_size + 1) // 2 + 1)
+
+
+                # Random Walk
+                for _ in range(steps):
+                    r, c = opp_pos
+                    dir = np.random.randint(0, 4)
+                    m_r, m_c = moves[dir]
+                    opp_pos = (r + m_r, c + m_c)
+
+                    # Special Case enclosed by Adversary
+                    k = 0
+                    while cur_state[2][r, c, dir] or opp_pos == cur_state[0]:
+                        k += 1
+                        if k > 300:
+                            break
+                        dir = np.random.randint(0, 4)
+                        m_r, m_c = moves[dir]
+                        opp_pos = (r + m_r, c + m_c)
+
+                    if k > 300:
+                        opp_pos = cur_state[2]
+                        break
+
+                # Put Barrier
+                dir = np.random.randint(0, 4)
+                r, c = opp_pos
+                while cur_state[2][r, c, dir]:
+                    dir = np.random.randint(0, 4)
+
+                r, c = opp_pos
+                new_board = self.set_barrier(r, c, dir,cur_state)
+                return cur_state[0], opp_pos, new_board
+
+
+
+            def backTracking(self, result):
+                if(result[0]):
+                    self._results[0] += 1
+                else:
+                    self._results[1] += 1
+
+
                 if self.parent:
                     self.parent.backpropagate(result)
+
+            def best_node(self):
+                return None
+
+            def select(self):
+                cur_n = self
+                while not cur_n.get_actions():
+                    cur_n = cur_n.best_node()
+                return cur_n
+
 
 
 
