@@ -7,7 +7,7 @@ import numpy as np
 
 from agents.agent import Agent
 from store import register_agent
-import sys
+
 
 
 @register_agent("student_agent")
@@ -28,10 +28,12 @@ class StudentAgent(Agent):
         }
 
         class MonteCarloTree():
-            def __init__(self, cur_state, board_size, parent=None, parent_action=None):
+            def __init__(self, cur_state, board_size, max_step, dir, parent=None, parent_action=None):
                 self.cur_state = cur_state
                 self._number_of_visits = 0
                 self.parent = parent
+                self.dir = dir
+                self.max_step = max_step
                 self.parent_action = parent_action
                 self.board_size = board_size
                 self.children = []
@@ -44,23 +46,30 @@ class StudentAgent(Agent):
                 self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
                 self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
                 return
-
+            def get_state(self):
+                return self.cur_state
+            def get_dir(self):
+                return self.dir
             def untried_actions(self):
                 self._untried_actions = self.cur_state.get_actions()
                 return self._untried_actions
 
-            def q(self):
+            def win_rate(self):
                 wins = self._results[1]
                 loses = self._results[-1]
                 return wins - loses
 
-            def n(self):
+            def get_number_visited(self):
                 return self._number_of_visits
+
+            def get_win_blocls(self):
+                return self._number_of_blocks
 
             def expand(self):
                 action = self._untried_actions.pop()
-                next_state = self.move(action)
-                child_node = MonteCarloTree(next_state, self.board_size, parent=self, parent_action=action)
+                old_board = copy.deepcopy(self.cur_state[2])
+                next_state = self.move(action, old_board)
+                child_node = MonteCarloTree(next_state, self.board_size, self.max_step, action[1], parent=self, parent_action=action)
                 self.children.append(child_node)
                 return child_node
 
@@ -137,7 +146,7 @@ class StudentAgent(Agent):
                 for i in range(50):
                     ori_pos = copy.deepcopy(self.cur_state[0])
                     moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
-                    steps = np.random.randint(0, (self.board_size + 1) // 2 + 1)
+                    steps = np.random.randint(0, self.max_step)
 
                     # Random Walk
                     for _ in range(steps):
@@ -165,7 +174,7 @@ class StudentAgent(Agent):
                     r, c = ori_pos
                     while self.cur_state[2][r, c, dir]:
                         dir = np.random.randint(0, 4)
-                    action = (ori_pos,dir)
+                    action = (ori_pos, dir)
                     actions.append(action)
                 return actions
 
@@ -187,7 +196,7 @@ class StudentAgent(Agent):
             def opp_move(self, cur_state):
                 opp_pos = copy.deepcopy(cur_state[2])
                 moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
-                steps = np.random.randint(0, (self.board_size + 1) // 2 + 1)
+                steps = np.random.randint(0, self.max_step)
 
 
                 # Random Walk
@@ -221,27 +230,38 @@ class StudentAgent(Agent):
                 new_board = self.set_barrier(r, c, dir,cur_state)
                 return cur_state[0], opp_pos, new_board
 
-
-
-            def backTracking(self, result):
-                if(result[0]):
+            def backtracking(self, result):
+                self._number_of_blocks += (result[1] - result[2])
+                self._number_of_visits += 1
+                if result[0]:
                     self._results[0] += 1
                 else:
                     self._results[1] += 1
-
-
-                if self.parent:
+                if self.parent is not None:
                     self.parent.backpropagate(result)
 
             def best_node(self):
-                return None
+                max = []
+                for c in self.children:
+                    value =( c.win_rate()/c.get_number_visited() ) + 0.1 * c.get_win_blocks
+                    value = value + 0.1 * np.sqrt(2 * np.log(self.get_number_visited() / c.get_number_visited()))
+                    max.append(value)
+                return self.children[np.argmax(max)]
 
             def select(self):
                 cur_n = self
-                while not cur_n.get_actions():
+                m = 0
+                while not cur_n.game_over(cur_n.cur_state[2]) or m < 40:
+                    cur_n.expand()
                     cur_n = cur_n.best_node()
                 return cur_n
 
+            def pick_children(self):
+                for i in range(30):
+                    cur_node = self.select()
+                    result = cur_node.simulate()
+                    cur_node.backtracking(result)
+                return self.best_node()
 
 
 
@@ -261,4 +281,7 @@ class StudentAgent(Agent):
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # dummy return
-        return my_pos, self.dir_map["u"]
+        cur_state = (my_pos, adv_pos, chess_board)
+        tree = self.MonteCarloTree()
+        best_choice = tree.pick_children()
+        return best_choice.get_state()[0], best_choice.get_dir
