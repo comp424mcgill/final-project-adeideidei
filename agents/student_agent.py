@@ -71,9 +71,7 @@ class MonteCarloTree():
         return self.game_over(self.cur_state)
 
     def game_over(self, cur_state):
-        logging.info(
-            "-----------------start determine if game is over--------------------------------------"
-        )
+
         father = dict()
         for r in range(self.board_size):
             for c in range(self.board_size):
@@ -87,9 +85,6 @@ class MonteCarloTree():
         def union(pos1, pos2):
             father[pos1] = pos2
 
-        logging.info(
-            "-----------------start determine if game is over part 1--------------------------------------"
-        )
         for r in range(self.board_size):
             for c in range(self.board_size):
                 for dir, move in enumerate(
@@ -101,22 +96,16 @@ class MonteCarloTree():
                     pos_b = find((r + move[0], c + move[1]))
                     if pos_a != pos_b:
                         union(pos_a, pos_b)
-        logging.info(
-            "-----------------start determine if game is over part 2--------------------------------------"
-        )
+
         for r in range(self.board_size):
             for c in range(self.board_size):
                 find((r, c))
-        logging.info(
-            "-----------------start determine if game is over part 3--------------------------------------"
-        )
+
         p0_r = find(cur_state[0])
         p1_r = find(cur_state[1])
         p0_score = list(father.values()).count(p0_r)
         p1_score = list(father.values()).count(p1_r)
-        logging.info(
-            "-----------------start determine if game is over part 4-------------------------------------"
-        )
+
         if p0_r == p1_r:
             return False, p0_score, p1_score
         logging.info(
@@ -132,6 +121,9 @@ class MonteCarloTree():
         return next_pos, self.cur_state[1], new_board
 
     def set_barrier(self, r, c, dir, old_board):
+        logging.info(
+            "-----------------put a barrier--------------------------------------"
+        )
         # Set the barrier to True
         chess_board = copy.deepcopy(old_board)
         chess_board[r, c, dir] = True
@@ -146,7 +138,11 @@ class MonteCarloTree():
         )
         actions = []
 
-        for i in range(50):
+        for i in range(5):
+            logging.info(
+                "-----------------start getting all the possible moves + 1--------------------------------------"
+            )
+
             ori_pos = copy.deepcopy(cur_state[0])
             moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
             steps = np.random.randint(0, self.max_step)
@@ -192,7 +188,7 @@ class MonteCarloTree():
                 "-----------------simulating--------------------------------------"
             )
             moves = self.get_actions(cur_state)
-            step = random.randint(0, len(moves))
+            step = random.randint(0, len(moves) - 1)
             move = moves[step]
             cur_state = self.move(move, cur_state[2])
             if self.game_over(cur_state)[0]:
@@ -205,12 +201,18 @@ class MonteCarloTree():
         return self.game_over(cur_state)
 
     def opp_move(self, cur_state):
+        logging.info(
+            "-----------------simulate opp moves--------------------------------------"
+        )
         opp_pos = copy.deepcopy(cur_state[1])
         moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         steps = np.random.randint(0, self.max_step)
 
         # Random Walk
         for _ in range(steps):
+            logging.info(
+                "-----------------simulate opp moves + 1--------------------------------------"
+            )
             r, c = opp_pos
             dir = np.random.randint(0, 4)
             m_r, m_c = moves[dir]
@@ -258,14 +260,14 @@ class MonteCarloTree():
             max.append(value)
         return self.children[np.argmax(max)]
 
-    def select(self):
+    def select(self,m):
         logging.info(
             "-----------------select chdilren--------------------------------------"
         )
         cur_n = self
-        m = 0
+
         while not cur_n.game_over(cur_n.cur_state)[0]:
-            if m < 40:
+            if m < 10:
                 logging.info(
                     "-----------------select chdilren part 1--------------------------------------"
                 )
@@ -279,8 +281,8 @@ class MonteCarloTree():
         logging.info(
             "-----------------pick children --------------------------------------"
         )
-        for i in range(30):
-            cur_node = self.select()
+        for i in range(15):
+            cur_node = self.select(i)
             result = cur_node.simulate()
             cur_node.backtracking(result)
         return self.best_node()
