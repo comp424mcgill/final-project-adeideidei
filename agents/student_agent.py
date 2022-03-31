@@ -2,6 +2,7 @@
 import copy
 import random
 from collections import defaultdict
+from typing import List
 
 import numpy as np
 import logging
@@ -288,6 +289,11 @@ class MonteCarloTree:
         return self.best_node()
 
 
+"""
+==================================================== NEW ====================================================
+"""
+
+
 class Action:
     """
     A class to store a step by storing its new and old positions in [x, y] and the new barrier to put
@@ -343,7 +349,7 @@ class StudentAgent(Agent):
             If valid, return True; otherwise, return False
         """
 
-        # Endpoint already has barrier or is boarder, or out of chess board
+        # Endpoint already has barrier or is boarder
         x, y = action.end_pos
 
         if chess_board[x, y, action.barrier_dir]:
@@ -381,6 +387,50 @@ class StudentAgent(Agent):
                 state_queue.append((next_pos, cur_step + 1))
 
         return is_valid
+
+    def get_valid_steps(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int) -> List[Action]:
+        """
+        Get all the valid steps that can be acted
+
+        Parameters
+        ----------
+        chess_board: np.ndarray
+            A numpy array of shape (x_max, y_max, 4)
+
+        my_pos: tuple
+            The position of the agent
+
+        adv_pos: tuple
+            The position of the adversary
+
+        max_step: int
+            The maximum step that can move
+
+        Returns
+        -------
+        valid_actions: List[Action]
+            All the valid actions
+        """
+
+        valid_actions = []
+        x_max, y_max, _ = chess_board.shape
+        x, y = my_pos
+
+        for i in range(x - max_step, x + max_step + 1):
+            if 0 <= i < x_max:
+                continue
+
+            for j in range(y - max_step, y + max_step + 1):
+                if 0 <= j < y_max:
+                    continue
+
+                for k in range(0, 4):
+                    cur_action = Action(my_pos, np.ndarray([i, j]), k)
+
+                    if self.check_valid_step(chess_board, cur_action, adv_pos, max_step):
+                        valid_actions.append(cur_action)
+
+        return valid_actions
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
