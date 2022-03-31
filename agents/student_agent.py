@@ -333,7 +333,7 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         The best chosen step from heuristic
     """
 
-    best_step = Action(my_pos, np.ndarray(my_pos), 0)
+    # best_step = Action(my_pos, np.ndarray(my_pos), 0)
 
     return actions[0]
 
