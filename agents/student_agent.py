@@ -290,7 +290,7 @@ class MonteCarloTree:
 
 
 """
-==================================================== NEW ====================================================
+========================================================= NEW =========================================================
 """
 
 
@@ -303,6 +303,39 @@ class Action:
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.barrier_dir = barrier_dir
+        self.step_taken = -1
+
+
+def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) -> Action:
+    """
+    Do heuristic here
+
+    Parameters
+    ----------
+    chess_board: np.ndarray
+        A numpy array of shape (x_max, y_max, 4)
+
+    my_pos: tuple
+        The position of the agent
+
+    adv_pos: tuple
+        The position of the adversary
+
+    max_step: int
+        The maximum step that can move
+
+    actions: List[Action]
+        The valid actions needed to be processed
+
+    Returns
+    -------
+    best_step: Action
+        The best chosen step from heuristic
+    """
+
+    best_step = Action(my_pos, np.ndarray(my_pos), 0)
+
+    return best_step
 
 
 @register_agent("student_agent")
@@ -327,7 +360,7 @@ class StudentAgent(Agent):
 
     def check_valid_step(self, chess_board: np.ndarray, action: Action, adv_pos: tuple, max_step: int) -> bool:
         """
-        Check if this new step is valid or not.
+        Check if this new step is valid or not. If action is valid, update the step taken for this action.
 
         Parameters
         ----------
@@ -380,6 +413,7 @@ class StudentAgent(Agent):
                     continue
 
                 if np.array_equal(next_pos, end_pos):
+                    action.step_taken = cur_step
                     is_valid = True
                     break
 
@@ -413,15 +447,15 @@ class StudentAgent(Agent):
         """
 
         valid_actions = []
-        x_max, y_max, _ = chess_board.shape
+        board_size, _, _ = chess_board.shape
         x, y = my_pos
 
         for i in range(x - max_step, x + max_step + 1):
-            if 0 <= i < x_max:
+            if 0 <= i < board_size:
                 continue
 
             for j in range(y - max_step, y + max_step + 1):
-                if 0 <= j < y_max:
+                if 0 <= j < board_size:
                     continue
 
                 for k in range(0, 4):
@@ -432,7 +466,7 @@ class StudentAgent(Agent):
 
         return valid_actions
 
-    def step(self, chess_board, my_pos, adv_pos, max_step):
+    def step(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int):
         """
         Implement the step function of your agent here.
         You can use the following variables to access the chess board:
@@ -454,6 +488,12 @@ class StudentAgent(Agent):
         # return best_choice.get_state()[0], best_choice.get_dir
 
         # Do Heuristic
+        actions = self.get_valid_steps(chess_board, my_pos, adv_pos, max_step)
+        best_step = heuristic(chess_board, my_pos, adv_pos, max_step, actions)
+
+        print(actions, "\n")
+
+        return best_step.end_pos, best_step.barrier_dir
 
         # dummy return
-        return my_pos, 0
+        # return my_pos, 0
