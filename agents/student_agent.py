@@ -10,7 +10,7 @@ from agents.agent import Agent
 from store import register_agent
 
 
-class MonteCarloTree():
+class MonteCarloTree:
     def __init__(self, cur_state, board_size, max_step, dir, parent=None, parent_action=None):
 
         logging.info(
@@ -132,7 +132,7 @@ class MonteCarloTree():
         chess_board[r + move[0], c + move[1], self.opposites[dir]] = True
         return chess_board
 
-    def get_actions(self,cur_state):
+    def get_actions(self, cur_state):
         logging.info(
             "-----------------start getting all the possible moves--------------------------------------"
         )
@@ -260,7 +260,7 @@ class MonteCarloTree():
             max.append(value)
         return self.children[np.argmax(max)]
 
-    def select(self,m):
+    def select(self, m):
         logging.info(
             "-----------------select chdilren--------------------------------------"
         )
@@ -288,6 +288,17 @@ class MonteCarloTree():
         return self.best_node()
 
 
+class Action:
+    """
+    A class to store a step by storing its new and old positions in [x, y] and the new barrier to put
+    """
+
+    def __init__(self, start_pos: tuple, end_pos: np.ndarray, barrier_dir: int):
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+        self.barrier_dir = barrier_dir
+
+
 @register_agent("student_agent")
 class StudentAgent(Agent):
     """
@@ -305,8 +316,71 @@ class StudentAgent(Agent):
             "l": 3,
         }
 
+        # Moves (Up, Right, Down, Left)
+        self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
+    def check_valid_step(self, chess_board: np.ndarray, action: Action, adv_pos: tuple, max_step: int) -> bool:
+        """
+        Check if this new step is valid or not.
 
+        Parameters
+        ----------
+        chess_board: np.ndarray
+            A numpy array of shape (x_max, y_max, 4)
+
+        action: Action
+            The action to do (move and put barrier)
+
+        adv_pos: tuple
+            The position of the adversary
+
+        max_step: int
+            The maximum step that can move
+
+        Returns
+        -------
+        is_valid: bool
+            If valid, return True; otherwise, return False
+        """
+
+        # Endpoint already has barrier or is boarder, or out of chess board
+        x, y = action.end_pos
+
+        if chess_board[x, y, action.barrier_dir]:
+            return False
+
+        if np.array_equal(action.start_pos, action.end_pos):
+            return True
+
+        # BFS
+        state_queue = [(action.start_pos, 0)]
+        visited = {tuple(action.start_pos)}
+        is_valid = False
+
+        while state_queue and not is_valid:
+            cur_pos, cur_step = state_queue.pop(0)
+            x, y = cur_pos
+
+            if cur_step == max_step:
+                break
+
+            for direction, move in enumerate(self.moves):
+                if chess_board[x, y, direction]:
+                    continue
+
+                next_pos = cur_pos + move
+
+                if np.array_equal(next_pos, adv_pos) or tuple(next_pos) in visited:
+                    continue
+
+                if np.array_equal(next_pos, end_pos):
+                    is_valid = True
+                    break
+
+                visited.add(tuple(next_pos))
+                state_queue.append((next_pos, cur_step + 1))
+
+        return is_valid
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -323,9 +397,13 @@ class StudentAgent(Agent):
 
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
-        # dummy return
-        cur_state = (my_pos, adv_pos, chess_board)
+        # MCT
+        # cur_state = (my_pos, adv_pos, chess_board)
+        # tree = MonteCarloTree(cur_state, chess_board.shape[0], max_step, 1)
+        # best_choice = tree.pick_children()
+        # return best_choice.get_state()[0], best_choice.get_dir
 
-        tree = MonteCarloTree(cur_state, chess_board.shape[0], max_step, 1)
-        best_choice = tree.pick_children()
-        return best_choice.get_state()[0], best_choice.get_dir
+        # Do Heuristic
+
+        # dummy return
+        return my_pos, 0
