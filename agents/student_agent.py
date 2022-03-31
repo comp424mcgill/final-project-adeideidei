@@ -335,7 +335,7 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
 
     best_step = Action(my_pos, np.ndarray(my_pos), 0)
 
-    return best_step
+    return actions[0]
 
 
 @register_agent("student_agent")
@@ -348,6 +348,7 @@ class StudentAgent(Agent):
     def __init__(self):
         super(StudentAgent, self).__init__()
         self.name = "StudentAgent"
+        self.autoplay = True
         self.dir_map = {
             "u": 0,
             "r": 1,
@@ -398,6 +399,9 @@ class StudentAgent(Agent):
 
         while state_queue and not is_valid:
             cur_pos, cur_step = state_queue.pop(0)
+
+            # logging.info(cur_pos)
+
             x, y = cur_pos
 
             if cur_step == max_step:
@@ -407,12 +411,12 @@ class StudentAgent(Agent):
                 if chess_board[x, y, direction]:
                     continue
 
-                next_pos = cur_pos + move
+                next_pos = (cur_pos[0] + move[0], cur_pos[1] + move[1])
 
                 if np.array_equal(next_pos, adv_pos) or tuple(next_pos) in visited:
                     continue
 
-                if np.array_equal(next_pos, end_pos):
+                if np.array_equal(next_pos, action.end_pos):
                     action.step_taken = cur_step
                     is_valid = True
                     break
@@ -451,15 +455,18 @@ class StudentAgent(Agent):
         x, y = my_pos
 
         for i in range(x - max_step, x + max_step + 1):
-            if 0 <= i < board_size:
+            if i < 0 or i >= board_size:
                 continue
 
             for j in range(y - max_step, y + max_step + 1):
-                if 0 <= j < board_size:
+                if j < 0 or j >= board_size:
                     continue
 
                 for k in range(0, 4):
-                    cur_action = Action(my_pos, np.ndarray([i, j]), k)
+                    cur_action = Action(my_pos, np.ndarray((2,), buffer=np.array([i, j]), dtype=int), k)
+
+                    # logging.info("i, j, k: %d, %d, %d", i, j, k)
+                    # logging.info(np.ndarray((2,), buffer=np.array([i, j]), dtype=int))
 
                     if self.check_valid_step(chess_board, cur_action, adv_pos, max_step):
                         valid_actions.append(cur_action)
