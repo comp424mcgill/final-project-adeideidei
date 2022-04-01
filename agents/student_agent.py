@@ -304,7 +304,7 @@ class Action:
         self.end_pos = end_pos
         self.barrier_dir = barrier_dir
         self.step_taken = -1
-
+        self.score = 0
 
 def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) -> Action:
     """
@@ -463,7 +463,8 @@ class StudentAgent(Agent):
                     continue
 
                 for k in range(0, 4):
-                    cur_action = Action(my_pos, np.ndarray((2,), buffer=np.array([i, j]), dtype=int), k)
+                    #np.ndarray((2,), buffer=np.array([i, j]), dtype=int)
+                    cur_action = Action(my_pos, (i, j), k)
 
                     # logging.info("i, j, k: %d, %d, %d", i, j, k)
                     # logging.info(np.ndarray((2,), buffer=np.array([i, j]), dtype=int))
