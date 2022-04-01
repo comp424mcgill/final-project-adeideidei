@@ -299,7 +299,7 @@ class Action:
     A class to store a step by storing its new and old positions in [x, y] and the new barrier to put
     """
 
-    def __init__(self, start_pos: tuple, end_pos: np.ndarray, barrier_dir: int):
+    def __init__(self, start_pos: tuple, end_pos:tuple, barrier_dir: int):
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.barrier_dir = barrier_dir
@@ -498,7 +498,7 @@ class StudentAgent(Agent):
         actions = self.get_valid_steps(chess_board, my_pos, adv_pos, max_step)
         best_step = heuristic(chess_board, my_pos, adv_pos, max_step, actions)
 
-        print(actions, "\n")
+        #print(actions, "\n")
 
         return best_step.end_pos, best_step.barrier_dir
 
