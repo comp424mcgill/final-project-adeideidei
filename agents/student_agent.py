@@ -531,7 +531,7 @@ class StudentAgent(Agent):
         i = 0
         board_size, _, _ = chess_board.shape
         mid = (int(board_size / 2), int(board_size / 2))
-
+        result = actions[0]
         for i in range(0, len(actions)):
             action = actions[i]
 
@@ -594,15 +594,16 @@ class StudentAgent(Agent):
             elif game_result[0] and game_result[1] <= game_result[2]:
 
                 score -= 5000
-
-            if score > max_score:
-                max_score = score
-                max_index = i
             action.set_score(score)
+            if score > max_score:
+                result = action
+                max_score = score
+
+
 
             i += 1
 
-        return actions[max_index]
+        return result
 
     def check_valid_step(self, chess_board: np.ndarray, action: Action, adv_pos: tuple, max_step: int) -> bool:
         """
