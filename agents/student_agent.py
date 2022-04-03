@@ -421,8 +421,9 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
     mid = (int(board_size/2), int(board_size/2))
     top_actions = []
 
-
-    for i in range(0,len(actions)):
+    if not actions:
+        return None
+    for i in range(0, len(actions)):
         action = actions[i]
 
        # print(i, "\n")
@@ -437,18 +438,18 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
         distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
         if distance_cur_mid < distance_pre_mid:
-            score += 20
+            score += 50
         else:
-            score -=20
+            score -=50
 
 
         # check if the pos is further away from the adv pos compared to previous pos
         distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
         distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
         if distance_cur <= distance_pre:
-            score += 40
+            score += 70
         else:
-            score -= 40
+            score -= 70
 
         if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
             score += 40
@@ -477,8 +478,9 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         game_result = action.game_finished(new_chess_board, cur_pos, adv_pos, board_size)
 
         if game_result[0] and game_result[1] > game_result[2]:
-
-            score += 5000
+            result = []
+            result.append(action)
+            return result
         elif game_result[0] and game_result[1] <= game_result[2]:
             score -= 5000
 
@@ -524,9 +526,11 @@ class StudentAgent(Agent):
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
     def best_opp(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) -> Action:
-
+       # print("one iteration","\n")
         # best_step = Action(my_pos, np.ndarray(my_pos), 0)
         max_index = 0
+        if not actions:
+            return None
         max_score = -2000
         i = 0
         board_size, _, _ = chess_board.shape
@@ -547,10 +551,10 @@ class StudentAgent(Agent):
             distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
             distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
             if distance_cur_mid < distance_pre_mid:
-                score += 40
+                score += 50
             else:
-                score -= 40
-
+                score -= 50
+            #check the barrier placement
             if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
                 score += 40
             elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
@@ -565,9 +569,9 @@ class StudentAgent(Agent):
             distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
             distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
             if distance_cur <= distance_pre:
-                score += 20
+                score += 70
             else:
-                score -= 20
+                score -= 70
 
             # check if the place entered already has 2 walls
             numbers_border = 0
@@ -585,6 +589,7 @@ class StudentAgent(Agent):
             game_result = action.game_finished(new_chess_board, cur_pos, adv_pos, board_size)
 
             if game_result[0] and game_result[1] > game_result[2]:
+                score += 5000
                 action.set_score(score)
                 return action
 
@@ -594,6 +599,8 @@ class StudentAgent(Agent):
             elif game_result[0] and game_result[1] <= game_result[2]:
 
                 score -= 5000
+
+          #  print("best action score : %d", score)
             action.set_score(score)
             if score > max_score:
                 result = action
@@ -730,21 +737,23 @@ class StudentAgent(Agent):
             return actions[0]
         board_size, _, _ =chessboard.shape
         for action in actions:
+
             #get the new chessboard based on the action
-            new_chessboard = action.set_barrier(action.end_pos[0], action.end_pos[1], action.barrier_dir,chessboard)
+            new_chessboard = action.set_barrier(action.end_pos[0], action.end_pos[1], action.barrier_dir, chessboard)
             #get all the possible opp move
             opp_actions = self.get_valid_steps(new_chessboard, adv_pos, action.end_pos, max_step)
             #choose the best opp move
             opp_best_action = self.best_opp(new_chessboard, adv_pos, action.end_pos, max_step, opp_actions)
+            if not opp_best_action:
+                return action
+            if opp_best_action.score > 3000:
 
+                i += 1
+                continue
 
             #update a new chess board
             updated_chessboard = action.set_barrier(opp_best_action.end_pos[0],  opp_best_action.end_pos[1],  opp_best_action.barrier_dir, new_chessboard)
-            game_result = action.game_finished(new_chessboard, opp_best_action.end_pos, action.end_pos,  board_size)
-            if game_result[0] and game_result[1] > game_result[2]:
-                print("lossssssssssssssssssss", "\n")
-                i += 1
-                continue
+
             #get all the new possible action for student
             new_actions_for_student = self.get_valid_steps(updated_chessboard, action.end_pos, opp_best_action.end_pos, max_step)
             new_best_action = self.best_opp(updated_chessboard, action.end_pos, opp_best_action.end_pos, max_step, new_actions_for_student)
@@ -788,7 +797,8 @@ class StudentAgent(Agent):
         best_steps = heuristic(chess_board, my_pos, adv_pos, max_step, actions)
         best_step = self.simulate(best_steps,adv_pos, chess_board, max_step)
 
-
+        if not best_step:
+            return my_pos, 1
 
         # print(actions, "\n")
 
