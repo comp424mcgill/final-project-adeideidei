@@ -284,7 +284,6 @@ class MonteCarloTree:
             cur_node.backtracking(result)
         return self.best_node()
 
-#
 
 """
 ========================================================= NEW =========================================================
@@ -402,7 +401,7 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
     len_action = len(actions)
     actions_to_simulate = 4
 
-    if len_action <= len_action: # 10
+    if len_action <= len_action:  # 10
         actions_to_simulate = len_action
 
     if not actions:
