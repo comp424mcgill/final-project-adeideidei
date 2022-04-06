@@ -512,14 +512,6 @@ class StudentAgent(Agent):
 
         # Moves (Up, Right, Down, Left)
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
-
-    SAME_PLACE_SCORE = -10
-    AWAY_FROM_MIDDLE_SCORE = 20
-    AWAY_FROM_ADV_SCORE = 30
-    BARRIER_PLACEMENT_SCORE = 40
-    WALL_SCORE = -60
-    BOUNDARY_SCORE = -20
-    BLOCK_LOST_SCORE = 40
         
     def best_opp(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int,
                  actions: List[Action]) -> Action:
