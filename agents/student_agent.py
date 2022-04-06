@@ -353,12 +353,12 @@ class Action:
 
 
 SAME_PLACE_SCORE = -10
-AWAY_FROM_MIDDLE_SCORE = 40
-AWAY_FROM_ADV_SCORE = 40
+AWAY_FROM_MIDDLE_SCORE = 20
+AWAY_FROM_ADV_SCORE = 30
 BARRIER_PLACEMENT_SCORE = 40
 WALL_SCORE = -60
 BOUNDARY_SCORE = -20
-
+BLOCK_LOST_SCORE = 40
 
 def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) \
         -> List[Action]:
@@ -395,6 +395,8 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
     if not actions:
         return None
 
+    _, my_score, _ = actions[0].game_finished(chess_board, my_pos, adv_pos, board_size)
+
     for i in range(0, len(actions)):
         action = actions[i]
 
@@ -426,18 +428,18 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         # check the barrier placement
         if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 \
                 and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
+            score += BARRIER_PLACEMENT_SCORE - distance_cur
         elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 \
                 and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
+            score += BARRIER_PLACEMENT_SCORE - distance_cur
 
         if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 \
                 and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
+            score += BARRIER_PLACEMENT_SCORE - distance_cur
 
         elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 \
                 and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
+            score += BARRIER_PLACEMENT_SCORE - distance_cur
 
         # check if the player at the board boundary
 
@@ -467,7 +469,13 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
             return result
 
         elif game_result[0] and game_result[1] <= game_result[2]:
-            score -= 7000
+            score -= 10000
+            action.set_score(score)
+            i += 1
+            continue
+
+        if not game_result[0]:
+            score -= (my_score - game_result[1]) * BLOCK_LOST_SCORE
 
         if score > max_score:
             max_score = score
@@ -505,25 +513,22 @@ class StudentAgent(Agent):
         # Moves (Up, Right, Down, Left)
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
-    SAME_PLACE_SCORE = -10
-    AWAY_FROM_MIDDLE_SCORE = 40
-    AWAY_FROM_ADV_SCORE = 40
-    BARRIER_PLACEMENT_SCORE = 40
-    WALL_SCORE = -60
-    BOUNDARY_SCORE = -20
-
     def best_opp(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int,
                  actions: List[Action]) -> Action:
         # print("one iteration","\n")
         # best_step = Action(my_pos, np.ndarray(my_pos), 0)
         max_index = 0
+
         if not actions:
             return None
+
         max_score = -2000
         i = 0
         board_size, _, _ = chess_board.shape
         mid = (int(board_size / 2), int(board_size / 2))
         result = actions[0]
+        _, my_score, _ = actions[0].game_finished(chess_board, my_pos, adv_pos, board_size)
+
         for i in range(0, len(actions)):
             action = actions[i]
 
@@ -552,17 +557,17 @@ class StudentAgent(Agent):
             # check the barrier placement
             if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[
                 0] - board_size <= 2:
-                score += BARRIER_PLACEMENT_SCORE
+                score += BARRIER_PLACEMENT_SCORE - distance_cur
             elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 and cur_pos[0] >= 2 and cur_pos[
                 0] - board_size <= 2:
-                score += BARRIER_PLACEMENT_SCORE
+                score += BARRIER_PLACEMENT_SCORE - distance_cur
 
             if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 and cur_pos[1] >= 2 and cur_pos[
                 1] - board_size <= 2:
-                score += BARRIER_PLACEMENT_SCORE
+                score += BARRIER_PLACEMENT_SCORE - distance_cur
             elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 and cur_pos[1] >= 2 and cur_pos[
                 1] - board_size <= 2:
-                score += BARRIER_PLACEMENT_SCORE
+                score += BARRIER_PLACEMENT_SCORE - distance_cur
 
             # check if the pos is further away from the adv pos compared to previous pos
 
@@ -596,7 +601,13 @@ class StudentAgent(Agent):
                 return action
 
             elif game_result[0] and game_result[1] <= game_result[2]:
-                score -= 5000
+
+                score -= 10000
+                action.set_score(score)
+                continue
+
+            if not game_result[0]:
+                score -= (my_score - game_result[1]) * BLOCK_LOST_SCORE
 
             #  print("best action score : %d", score)
             action.set_score(score)
