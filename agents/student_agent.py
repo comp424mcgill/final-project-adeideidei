@@ -77,15 +77,12 @@ class MonteCarloTree:
         for r in range(self.board_size):
             for c in range(self.board_size):
                 father[(r, c)] = (r, c)
-
         def find(pos):
             if father[pos] != pos:
                 father[pos] = find(father[pos])
             return father[pos]
-
         def union(pos1, pos2):
             father[pos1] = pos2
-
         for r in range(self.board_size):
             for c in range(self.board_size):
                 for dir, move in enumerate(
@@ -97,16 +94,13 @@ class MonteCarloTree:
                     pos_b = find((r + move[0], c + move[1]))
                     if pos_a != pos_b:
                         union(pos_a, pos_b)
-
         for r in range(self.board_size):
             for c in range(self.board_size):
                 find((r, c))
-
         p0_r = find(cur_state[0])
         p1_r = find(cur_state[1])
         p0_score = list(father.values()).count(p0_r)
         p1_score = list(father.values()).count(p1_r)
-
         if p0_r == p1_r:
             return False, p0_score, p1_score
         """
@@ -358,55 +352,38 @@ class Action:
         return True, p0_score, p1_score
 
 
-SAME_PLACE_SCORE = -10
-AWAY_FROM_MIDDLE_SCORE = 40
-AWAY_FROM_ADV_SCORE = 40
-BARRIER_PLACEMENT_SCORE = 20
-WALL_SCORE = -60
-BOUNDARY_SCORE = -20
-
-
 def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) \
         -> List[Action]:
     """
     Do heuristic here
-
     Parameters
     ----------
     chess_board: np.ndarray
         A numpy array of shape (x_max, y_max, 4)
-
     my_pos: tuple
         The position of the agent
-
     adv_pos: tuple
         The position of the adversary
-
     max_step: int
         The maximum step that can move
-
     actions: List[Action]
         The valid actions needed to be processed
-
     Returns
     -------
     best_step: Action
         The best chosen step from heuristic
     """
 
-    max_score = -10000
+    # best_step = Action(my_pos, np.ndarray(my_pos), 0)
+    max_index = 0
+    max_score = -2000
+    i = 0
     board_size, _, _ = chess_board.shape
     mid = (int(board_size / 2), int(board_size / 2))
     top_actions = []
-    len_action = len(actions)
-    actions_to_simulate = 4
-
-    if len_action <= len_action:  # 10
-        actions_to_simulate = len_action
 
     if not actions:
         return None
-
     for i in range(0, len(actions)):
         action = actions[i]
 
@@ -414,58 +391,47 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         score = 0
         cur_pos = action.end_pos
         pre_pos = action.start_pos
-
         # check if the player stay at the same place:
         if cur_pos[0] == pre_pos[0] and cur_pos[1] == pre_pos[1]:
-            score += SAME_PLACE_SCORE
+            score -= 10
 
         # check if the pos is further away from the middle
         distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
         distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
         if distance_cur_mid < distance_pre_mid:
-            score += AWAY_FROM_MIDDLE_SCORE
+            score += 50
         else:
-            score -= AWAY_FROM_MIDDLE_SCORE
+            score -= 50
 
         # check if the pos is further away from the adv pos compared to previous pos
         distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
         distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
         if distance_cur <= distance_pre:
-            score += AWAY_FROM_ADV_SCORE
+            score += 70
         else:
-            score -= AWAY_FROM_ADV_SCORE
+            score -= 70
 
-        # check the barrier placement
-        if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 \
-                and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
-        elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 \
-                and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
+        if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
+            score += 40
+        elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 and cur_pos[0] >= 2 and cur_pos[
+            0] - board_size <= 2:
+            score += 40
 
-        if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 \
-                and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
+        if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
+            score += 40
+        elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 and cur_pos[1] >= 2 and cur_pos[
+            1] - board_size <= 2:
+            score += 40
 
-        elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 \
-                and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
-
-        # check if the player at the board boundary
-        max_x, max_y = chess_board.shape
-        if action.end_pos[0] == 0 or action.end_pos[0] == max_x - 1:
-            score += BOUNDARY_SCORE
-            if action.end_pos[1] == 0 or action.end_pos[1] == max_y - 1:
-                score += BOUNDARY_SCORE
-
-        # check if the player entered already has 2 walls
-        numbers_border = 0
+        # check if the place entered already has 2 walls
+        numbers_border = 0;
         for ind in range(0, 4):
             if chess_board[cur_pos[0], cur_pos[1], ind]:
                 numbers_border += 1
-
-        if numbers_border != 0:
-            score += WALL_SCORE * (numbers_border - 1)
+        if numbers_border >= 2:
+            score -= 80
+        else:
+            score += 50
 
         # check if it can finished the game directly
         new_chess_board = action.set_barrier(cur_pos[0], cur_pos[1], action.barrier_dir, chess_board)
@@ -473,17 +439,17 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         game_result = action.game_finished(new_chess_board, cur_pos, adv_pos, board_size)
 
         if game_result[0] and game_result[1] > game_result[2]:
-            result = [action]
+            result = []
+            result.append(action)
             return result
-
         elif game_result[0] and game_result[1] <= game_result[2]:
-            score -= 7000
+            score -= 5000
 
         if score > max_score:
             max_score = score
             max_index = i
         action.set_score(score)
-        if i < actions_to_simulate:
+        if i <= 4:
             top_actions.append(action)
         else:
             for j in range(0, len(top_actions)):
@@ -492,101 +458,6 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         i += 1
 
     return top_actions
-
-
-def best_opp(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) \
-        -> Action:
-    if not actions:
-        return None
-
-    max_score = -10000
-    board_size, _, _ = chess_board.shape
-    mid = (int(board_size / 2), int(board_size / 2))
-    result = actions[0]
-
-    for i in range(0, len(actions)):
-        action = actions[i]
-
-        # print(i, "\n")
-        score = 0
-        cur_pos = action.end_pos
-        pre_pos = action.start_pos
-
-        # check if the player stay at the same place:
-        if cur_pos[0] == pre_pos[0] and cur_pos[1] == pre_pos[1]:
-            score += SAME_PLACE_SCORE
-
-        # check if the pos is further away from the middle
-        distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
-        distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
-        if distance_cur_mid < distance_pre_mid:
-            score += AWAY_FROM_MIDDLE_SCORE
-        else:
-            score -= AWAY_FROM_MIDDLE_SCORE
-
-        # check if the player at the board boundary
-        max_x, max_y = chess_board.shape
-        if action.end_pos[0] == 0 or action.end_pos[0] == max_x - 1:
-            score += BOUNDARY_SCORE
-            if action.end_pos[1] == 0 or action.end_pos[1] == max_y - 1:
-                score += BOUNDARY_SCORE
-
-        # check the barrier placement
-        if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 \
-                and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
-
-        elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 \
-                and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
-
-        if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 \
-                and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
-
-        elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 \
-                and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
-            score += BARRIER_PLACEMENT_SCORE
-
-        # check if the pos is further away from the adv pos compared to previous pos
-        distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
-        distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
-        if distance_cur <= distance_pre:
-            score += AWAY_FROM_ADV_SCORE
-        else:
-            score -= AWAY_FROM_ADV_SCORE
-
-        # check if the place entered already has 2 walls
-        numbers_border = 0
-
-        for j in range(0, 4):
-            if chess_board[cur_pos[0], cur_pos[1], j]:
-                numbers_border += 1
-
-        if numbers_border != 0:
-            score += WALL_SCORE * (numbers_border - 1)
-
-        # check if it can finished the game directly
-        new_chess_board = action.set_barrier(cur_pos[0], cur_pos[1], action.barrier_dir, chess_board)
-        board_size, _, _ = new_chess_board.shape
-        game_result = action.game_finished(new_chess_board, cur_pos, adv_pos, board_size)
-
-        if game_result[0] and game_result[1] > game_result[2]:
-            score += 7000
-            action.set_score(score)
-            return action
-
-        elif game_result[0] and game_result[1] <= game_result[2]:
-            score -= 7000
-
-        action.set_score(score)
-        if score > max_score:
-            result = action
-            max_score = score
-
-        i += 1
-
-    return result
 
 
 @register_agent("student_agent")
@@ -610,24 +481,105 @@ class StudentAgent(Agent):
         # Moves (Up, Right, Down, Left)
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
+    def best_opp(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int,
+                 actions: List[Action]) -> Action:
+        # print("one iteration","\n")
+        # best_step = Action(my_pos, np.ndarray(my_pos), 0)
+        max_index = 0
+        if not actions:
+            return None
+        max_score = -2000
+        i = 0
+        board_size, _, _ = chess_board.shape
+        mid = (int(board_size / 2), int(board_size / 2))
+        result = actions[0]
+        for i in range(0, len(actions)):
+            action = actions[i]
+
+            # print(i, "\n")
+            score = 0
+            cur_pos = action.end_pos
+            pre_pos = action.start_pos
+            # check if the player stay at the same place:
+            if cur_pos[0] == pre_pos[0] and cur_pos[1] == pre_pos[1]:
+                score -= 10
+
+            # check if the pos is further away from the middle
+            distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
+            distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
+            if distance_cur_mid < distance_pre_mid:
+                score += 50
+            else:
+                score -= 50
+            # check the barrier placement
+            if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[
+                0] - board_size <= 2:
+                score += 40
+            elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 and cur_pos[0] >= 2 and cur_pos[
+                0] - board_size <= 2:
+                score += 40
+
+            if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 and cur_pos[1] >= 2 and cur_pos[
+                1] - board_size <= 2:
+                score += 40
+            elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 and cur_pos[1] >= 2 and cur_pos[
+                1] - board_size <= 2:
+                score += 40
+
+            # check if the pos is further away from the adv pos compared to previous pos
+            distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
+            distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
+            if distance_cur <= distance_pre:
+                score += 70
+            else:
+                score -= 70
+
+            # check if the place entered already has 2 walls
+            numbers_border = 0
+            for j in range(0, 4):
+                if chess_board[cur_pos[0], cur_pos[1], j]:
+                    numbers_border += 1
+            if numbers_border >= 2:
+                score -= 80
+            else:
+                score += 50
+
+            # check if it can finished the game directly
+            new_chess_board = action.set_barrier(cur_pos[0], cur_pos[1], action.barrier_dir, chess_board)
+            board_size, _, _ = new_chess_board.shape
+            game_result = action.game_finished(new_chess_board, cur_pos, adv_pos, board_size)
+
+            if game_result[0] and game_result[1] > game_result[2]:
+                score += 5000
+                action.set_score(score)
+                return action
+
+            elif game_result[0] and game_result[1] <= game_result[2]:
+                score -= 5000
+
+            #  print("best action score : %d", score)
+            action.set_score(score)
+            if score > max_score:
+                result = action
+                max_score = score
+
+            i += 1
+
+        return result
+
     def check_valid_step(self, chess_board: np.ndarray, action: Action, adv_pos: tuple, max_step: int) -> bool:
         """
         Check if this new step is valid or not. If action is valid, update the step taken for this action.
-
         Parameters
         ----------
         chess_board: np.ndarray
             A numpy array of shape (x_max, y_max, 4)
-
         action: Action
             The action to do (move and put barrier)
-
         adv_pos: tuple
             The position of the adversary
-
         max_step: int
             The maximum step that can move
-
         Returns
         -------
         is_valid: bool
@@ -680,21 +632,16 @@ class StudentAgent(Agent):
     def get_valid_steps(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int) -> List[Action]:
         """
         Get all the valid steps that can be acted
-
         Parameters
         ----------
         chess_board: np.ndarray
             A numpy array of shape (x_max, y_max, 4)
-
         my_pos: tuple
             The position of the agent
-
         adv_pos: tuple
             The position of the adversary
-
         max_step: int
             The maximum step that can move
-
         Returns
         -------
         valid_actions: List[Action]
@@ -740,7 +687,7 @@ class StudentAgent(Agent):
             # get all the possible opp move
             opp_actions = self.get_valid_steps(new_chessboard, adv_pos, action.end_pos, max_step)
             # choose the best opp move
-            opp_best_action = best_opp(new_chessboard, adv_pos, action.end_pos, max_step, opp_actions)
+            opp_best_action = self.best_opp(new_chessboard, adv_pos, action.end_pos, max_step, opp_actions)
             if not opp_best_action:
                 return action
             if opp_best_action.score > 3000:
@@ -754,8 +701,8 @@ class StudentAgent(Agent):
             # get all the new possible action for student
             new_actions_for_student = self.get_valid_steps(updated_chessboard, action.end_pos, opp_best_action.end_pos,
                                                            max_step)
-            new_best_action = best_opp(updated_chessboard, action.end_pos, opp_best_action.end_pos, max_step,
-                                       new_actions_for_student)
+            new_best_action = self.best_opp(updated_chessboard, action.end_pos, opp_best_action.end_pos, max_step,
+                                            new_actions_for_student)
             current_score = new_best_action.score + action.score
             # print(current_score)
             if current_score > max_score:
@@ -772,11 +719,9 @@ class StudentAgent(Agent):
         - my_pos: a tuple of (x, y)
         - adv_pos: a tuple of (x, y)
         - max_step: an integer
-
         You should return a tuple of ((x, y), dir),
         where (x, y) is the next position of your agent and dir is the direction of the wall
         you want to put on.
-
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # MCT
