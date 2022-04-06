@@ -411,17 +411,17 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
         distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
         if distance_cur_mid < distance_pre_mid:
-            score += AWAY_FROM_MIDDLE_SCORE + distance_cur_mid
+            score += AWAY_FROM_MIDDLE_SCORE - distance_cur_mid
         else:
-            score -= (AWAY_FROM_MIDDLE_SCORE + distance_cur_mid)
+            score -= (AWAY_FROM_MIDDLE_SCORE - distance_cur_mid)
 
         # check if the pos is further away from the adv pos compared to previous pos
         distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
         distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
         if distance_cur <= distance_pre:
-            score += AWAY_FROM_ADV_SCORE + distance_cur
+            score += AWAY_FROM_ADV_SCORE - distance_cur
         else:
-            score -= (AWAY_FROM_ADV_SCORE + distance_cur)
+            score -= (AWAY_FROM_ADV_SCORE - distance_cur)
 
         # check the barrier placement
         if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 \
@@ -538,17 +538,17 @@ class StudentAgent(Agent):
             distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
             distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
             if distance_cur_mid < distance_pre_mid:
-                score += AWAY_FROM_MIDDLE_SCORE + distance_cur_mid
+                score += AWAY_FROM_MIDDLE_SCORE - distance_cur_mid
             else:
-                score -= (AWAY_FROM_MIDDLE_SCORE + distance_cur_mid)
+                score -= (AWAY_FROM_MIDDLE_SCORE - distance_cur_mid)
 
             # check if the pos is further away from the adv pos compared to previous pos
             distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
             distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
             if distance_cur <= distance_pre:
-                score += AWAY_FROM_ADV_SCORE + distance_cur
+                score += AWAY_FROM_ADV_SCORE - distance_cur
             else:
-                score -= (AWAY_FROM_ADV_SCORE + distance_cur)
+                score -= (AWAY_FROM_ADV_SCORE - distance_cur)
             # check the barrier placement
             if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[
                 0] - board_size <= 2:
