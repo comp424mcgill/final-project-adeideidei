@@ -352,6 +352,14 @@ class Action:
         return True, p0_score, p1_score
 
 
+SAME_PLACE_SCORE = -10
+AWAY_FROM_MIDDLE_SCORE = 40
+AWAY_FROM_ADV_SCORE = 40
+BARRIER_PLACEMENT_SCORE = 40
+WALL_SCORE = -60
+BOUNDARY_SCORE = -20
+
+
 def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) \
         -> List[Action]:
     """
@@ -374,16 +382,19 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         The best chosen step from heuristic
     """
 
-    # best_step = Action(my_pos, np.ndarray(my_pos), 0)
-    max_index = 0
-    max_score = -2000
-    i = 0
+    max_score = -10000
     board_size, _, _ = chess_board.shape
     mid = (int(board_size / 2), int(board_size / 2))
     top_actions = []
+    len_action = len(actions)
+    actions_to_simulate = 4
+
+    if len_action <= 10:  # 10
+        actions_to_simulate = len_action
 
     if not actions:
         return None
+
     for i in range(0, len(actions)):
         action = actions[i]
 
@@ -391,47 +402,60 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         score = 0
         cur_pos = action.end_pos
         pre_pos = action.start_pos
+
         # check if the player stay at the same place:
         if cur_pos[0] == pre_pos[0] and cur_pos[1] == pre_pos[1]:
-            score -= 10
+            score += SAME_PLACE_SCORE
 
         # check if the pos is further away from the middle
         distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
         distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
         if distance_cur_mid < distance_pre_mid:
-            score += 50
+            score += AWAY_FROM_MIDDLE_SCORE + distance_cur_mid
         else:
-            score -= 50
+            score -= (AWAY_FROM_MIDDLE_SCORE + distance_cur_mid)
 
         # check if the pos is further away from the adv pos compared to previous pos
         distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
         distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
         if distance_cur <= distance_pre:
-            score += 70
+            score += AWAY_FROM_ADV_SCORE + distance_cur
         else:
-            score -= 70
+            score -= (AWAY_FROM_ADV_SCORE + distance_cur)
 
-        if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
-            score += 40
-        elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 and cur_pos[0] >= 2 and cur_pos[
-            0] - board_size <= 2:
-            score += 40
+        # check the barrier placement
+        if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 \
+                and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
+            score += BARRIER_PLACEMENT_SCORE
+        elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 \
+                and cur_pos[0] >= 2 and cur_pos[0] - board_size <= 2:
+            score += BARRIER_PLACEMENT_SCORE
 
-        if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
-            score += 40
-        elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 and cur_pos[1] >= 2 and cur_pos[
-            1] - board_size <= 2:
-            score += 40
+        if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 \
+                and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
+            score += BARRIER_PLACEMENT_SCORE
 
-        # check if the place entered already has 2 walls
-        numbers_border = 0;
+        elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 \
+                and cur_pos[1] >= 2 and cur_pos[1] - board_size <= 2:
+            score += BARRIER_PLACEMENT_SCORE
+
+        # check if the player at the board boundary
+
+        if action.end_pos[0] == 0 or action.end_pos[0] == board_size - 1:
+            score += BOUNDARY_SCORE
+            if action.end_pos[1] == 0 or action.end_pos[1] == board_size - 1:
+                score += BOUNDARY_SCORE
+
+        # check if the player entered already has 2 walls
+        numbers_border = 0
         for ind in range(0, 4):
             if chess_board[cur_pos[0], cur_pos[1], ind]:
                 numbers_border += 1
-        if numbers_border >= 2:
-            score -= 80
+
+        if numbers_border != 0:
+            score += WALL_SCORE * (numbers_border - 1)
         else:
-            score += 50
+            score -= WALL_SCORE
 
         # check if it can finished the game directly
         new_chess_board = action.set_barrier(cur_pos[0], cur_pos[1], action.barrier_dir, chess_board)
@@ -439,17 +463,17 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         game_result = action.game_finished(new_chess_board, cur_pos, adv_pos, board_size)
 
         if game_result[0] and game_result[1] > game_result[2]:
-            result = []
-            result.append(action)
+            result = [action]
             return result
+
         elif game_result[0] and game_result[1] <= game_result[2]:
-            score -= 5000
+            score -= 7000
 
         if score > max_score:
             max_score = score
-            max_index = i
+
         action.set_score(score)
-        if i <= 4:
+        if i < actions_to_simulate:
             top_actions.append(action)
         else:
             for j in range(0, len(top_actions)):
@@ -481,6 +505,13 @@ class StudentAgent(Agent):
         # Moves (Up, Right, Down, Left)
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
 
+    SAME_PLACE_SCORE = -10
+    AWAY_FROM_MIDDLE_SCORE = 40
+    AWAY_FROM_ADV_SCORE = 40
+    BARRIER_PLACEMENT_SCORE = 40
+    WALL_SCORE = -60
+    BOUNDARY_SCORE = -20
+
     def best_opp(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int,
                  actions: List[Action]) -> Action:
         # print("one iteration","\n")
@@ -502,47 +533,57 @@ class StudentAgent(Agent):
             pre_pos = action.start_pos
             # check if the player stay at the same place:
             if cur_pos[0] == pre_pos[0] and cur_pos[1] == pre_pos[1]:
-                score -= 10
+                score += SAME_PLACE_SCORE
 
-            # check if the pos is further away from the middle
             distance_cur_mid = abs(cur_pos[0] - mid[0]) + abs(cur_pos[1] - mid[1])
             distance_pre_mid = abs(pre_pos[0] - mid[0]) + abs(pre_pos[1] - mid[1])
             if distance_cur_mid < distance_pre_mid:
-                score += 50
+                score += AWAY_FROM_MIDDLE_SCORE + distance_cur_mid
             else:
-                score -= 50
-            # check the barrier placement
-            if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[
-                0] - board_size <= 2:
-                score += 40
-            elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 and cur_pos[0] >= 2 and cur_pos[
-                0] - board_size <= 2:
-                score += 40
-
-            if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 and cur_pos[1] >= 2 and cur_pos[
-                1] - board_size <= 2:
-                score += 40
-            elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 and cur_pos[1] >= 2 and cur_pos[
-                1] - board_size <= 2:
-                score += 40
+                score -= (AWAY_FROM_MIDDLE_SCORE + distance_cur_mid)
 
             # check if the pos is further away from the adv pos compared to previous pos
             distance_cur = abs(cur_pos[0] - adv_pos[0]) + abs(cur_pos[1] - adv_pos[1])
             distance_pre = abs(pre_pos[0] - adv_pos[0]) + abs(pre_pos[1] - adv_pos[1])
             if distance_cur <= distance_pre:
-                score += 70
+                score += AWAY_FROM_ADV_SCORE + distance_cur
             else:
-                score -= 70
+                score -= (AWAY_FROM_ADV_SCORE + distance_cur)
+            # check the barrier placement
+            if cur_pos[0] - adv_pos[0] > 0 and action.barrier_dir == 0 and cur_pos[0] >= 2 and cur_pos[
+                0] - board_size <= 2:
+                score += BARRIER_PLACEMENT_SCORE
+            elif cur_pos[0] - adv_pos[0] < 0 and action.barrier_dir == 2 and cur_pos[0] >= 2 and cur_pos[
+                0] - board_size <= 2:
+                score += BARRIER_PLACEMENT_SCORE
+
+            if cur_pos[1] - adv_pos[1] > 0 and action.barrier_dir == 3 and cur_pos[1] >= 2 and cur_pos[
+                1] - board_size <= 2:
+                score += BARRIER_PLACEMENT_SCORE
+            elif cur_pos[1] - adv_pos[1] < 0 and action.barrier_dir == 1 and cur_pos[1] >= 2 and cur_pos[
+                1] - board_size <= 2:
+                score += BARRIER_PLACEMENT_SCORE
+
+            # check if the pos is further away from the adv pos compared to previous pos
+
 
             # check if the place entered already has 2 walls
+
             numbers_border = 0
-            for j in range(0, 4):
-                if chess_board[cur_pos[0], cur_pos[1], j]:
+            for ind in range(0, 4):
+                if chess_board[cur_pos[0], cur_pos[1], ind]:
                     numbers_border += 1
-            if numbers_border >= 2:
-                score -= 80
+
+            if numbers_border != 0:
+                score += WALL_SCORE * (numbers_border - 1)
             else:
-                score += 50
+                score -= WALL_SCORE
+
+
+            if action.end_pos[0] == 0 or action.end_pos[0] == board_size - 1:
+                score += BOUNDARY_SCORE
+                if action.end_pos[1] == 0 or action.end_pos[1] == board_size - 1:
+                    score += BOUNDARY_SCORE
 
             # check if it can finished the game directly
             new_chess_board = action.set_barrier(cur_pos[0], cur_pos[1], action.barrier_dir, chess_board)
