@@ -389,7 +389,7 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
     top_actions = []
     len_action = len(actions)
     actions_to_simulate = 4
-
+    # print(len_action)
     if len_action <= 10:  # 10
         actions_to_simulate = len_action
     if len_action > 30:
@@ -468,17 +468,11 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
             result = [action]
             return result
 
-        elif game_result[0] and game_result[1] <= game_result[2]:
-            score -= 10000
-            action.set_score(score)
-
-            continue
+        elif game_result[0] and game_result[1] < game_result[2]:
+            score -= 1000000
 
         if not game_result[0]:
             score -= (my_score - game_result[1]) * BLOCK_LOST_SCORE
-
-        if score > max_score:
-            max_score = score
 
         action.set_score(score)
         if i < actions_to_simulate:
@@ -487,6 +481,7 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
             for j in range(0, len(top_actions)):
                 if top_actions[j].score < score:
                     top_actions[j] = action
+                    break
 
     return top_actions
 
@@ -522,7 +517,7 @@ class StudentAgent(Agent):
             return None
 
         max_score = -2000
-        i = 0
+
         board_size, _, _ = chess_board.shape
         mid = (int(board_size / 2), int(board_size / 2))
         result = actions[0]
@@ -594,11 +589,9 @@ class StudentAgent(Agent):
                 action.set_score(score)
                 return action
 
-            elif game_result[0] and game_result[1] <= game_result[2]:
+            elif game_result[0] and game_result[1] < game_result[2]:
 
-                score -= 10000
-                action.set_score(score)
-                continue
+                score -= 1000000
 
             if not game_result[0]:
                 score -= (my_score - game_result[1]) * BLOCK_LOST_SCORE
@@ -608,9 +601,6 @@ class StudentAgent(Agent):
             if score > max_score:
                 result = action
                 max_score = score
-
-            i += 1
-
         return result
 
     def check_valid_step(self, chess_board: np.ndarray, action: Action, adv_pos: tuple, max_step: int) -> bool:
@@ -727,6 +717,7 @@ class StudentAgent(Agent):
             return actions[0]
 
         if not actions:
+            print("why im here")
             return None
         board_size, _, _ = chessboard.shape
         for action in actions:
