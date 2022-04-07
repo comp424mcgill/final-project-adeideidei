@@ -360,6 +360,7 @@ WALL_SCORE = -60
 BOUNDARY_SCORE = -20
 BLOCK_LOST_SCORE = 40
 
+
 def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int, actions: List[Action]) \
         -> List[Action]:
     """
@@ -470,7 +471,7 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
         elif game_result[0] and game_result[1] <= game_result[2]:
             score -= 10000
             action.set_score(score)
-            i += 1
+
             continue
 
         if not game_result[0]:
@@ -486,7 +487,6 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
             for j in range(0, len(top_actions)):
                 if top_actions[j].score < score:
                     top_actions[j] = action
-        i += 1
 
     return top_actions
 
@@ -511,7 +511,7 @@ class StudentAgent(Agent):
 
         # Moves (Up, Right, Down, Left)
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
-        
+
     def best_opp(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int,
                  actions: List[Action]) -> Action:
         # print("one iteration","\n")
@@ -570,7 +570,6 @@ class StudentAgent(Agent):
 
             # check if the pos is further away from the adv pos compared to previous pos
 
-
             # check if the place entered already has 2 walls
 
             numbers_border = 0
@@ -578,11 +577,7 @@ class StudentAgent(Agent):
                 if chess_board[cur_pos[0], cur_pos[1], ind]:
                     numbers_border += 1
 
-            if numbers_border != 0:
-                score += WALL_SCORE * (numbers_border - 1)
-            else:
-                score -= WALL_SCORE
-
+            score += WALL_SCORE * (numbers_border - 1)
 
             if action.end_pos[0] == 0 or action.end_pos[0] == board_size - 1:
                 score += BOUNDARY_SCORE
@@ -730,6 +725,9 @@ class StudentAgent(Agent):
         max_index = 0
         if len(actions) == 1:
             return actions[0]
+
+        if not actions:
+            return None
         board_size, _, _ = chessboard.shape
         for action in actions:
 
