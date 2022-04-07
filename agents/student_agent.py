@@ -512,7 +512,7 @@ class StudentAgent(Agent):
 
         # Moves (Up, Right, Down, Left)
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
-
+        
     def best_opp(self, chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: int,
                  actions: List[Action]) -> Action:
         # print("one iteration","\n")
