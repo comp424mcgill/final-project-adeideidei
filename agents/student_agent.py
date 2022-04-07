@@ -391,6 +391,8 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
 
     if len_action <= 10:  # 10
         actions_to_simulate = len_action
+    if len_action > 30:
+        actions_to_simulate = 2
 
     if not actions:
         return None
