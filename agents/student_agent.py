@@ -456,10 +456,7 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
             if chess_board[cur_pos[0], cur_pos[1], ind]:
                 numbers_border += 1
 
-        if numbers_border != 0:
-            score += WALL_SCORE * (numbers_border - 1)
-        else:
-            score -= WALL_SCORE
+        score += WALL_SCORE * (numbers_border - 1)
 
         # check if it can finished the game directly
         new_chess_board = action.set_barrier(cur_pos[0], cur_pos[1], action.barrier_dir, chess_board)
