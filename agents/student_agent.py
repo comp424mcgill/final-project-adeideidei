@@ -726,7 +726,7 @@ class StudentAgent(Agent):
 
     def simulate(self, actions: List[Action], adv_pos, chessboard, max_step) -> Action:
 
-        max_score = -10000
+        max_score = -1000000
         i = 0
         max_index = 0
         if len(actions) == 1:
@@ -755,7 +755,7 @@ class StudentAgent(Agent):
                                                            max_step)
             new_best_action = self.best_opp(updated_chessboard, action.end_pos, opp_best_action.end_pos, max_step,
                                             new_actions_for_student)
-            current_score = new_best_action.score + action.score
+            current_score = new_best_action.score + action.score - opp_best_action.score
             # print(current_score)
             if current_score > max_score:
                 max_index = i
