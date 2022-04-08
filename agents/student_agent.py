@@ -389,8 +389,8 @@ def heuristic(chess_board: np.ndarray, my_pos: tuple, adv_pos: tuple, max_step: 
     top_actions = []
     len_action = len(actions)
     actions_to_simulate = 4
-    # print(len_action)
-    if len_action <= 10:  # 10
+
+    if len_action <= 10:
         actions_to_simulate = len_action
     if len_action > 30:
         actions_to_simulate = 2
@@ -717,7 +717,7 @@ class StudentAgent(Agent):
             return actions[0]
 
         if not actions:
-            print("why im here")
+            print("WHY AM I HERE?")
             return None
         board_size, _, _ = chessboard.shape
         for action in actions:
